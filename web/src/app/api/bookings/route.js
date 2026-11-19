@@ -6,7 +6,7 @@ export async function GET(req) {
   const u = await getUser(req);
   if (!u) return fail("Please log in", 401);
 
-  let where = {};
+ let where = u.role === "ADMIN" ? {} : { id: "none" };
   if (u.role === "CUSTOMER") where = { customerId: u.id };
   if (u.role === "PROVIDER") {
     const provider = await prisma.provider.findUnique({ where: { userId: u.id } });
@@ -18,6 +18,7 @@ export async function GET(req) {
       service: { select: { title: true, priceSek: true } },
       provider: { select: { companyName: true } },
       customer: { select: { name: true, email: true } },
+      employee: { include: { user: { select: { name: true } } } },
     },
     orderBy: { date: "desc" },
   });
@@ -47,6 +48,8 @@ export async function POST(req) {
       date: when,
       address,
       note: note || "",
+      title: service.title,
+      priceSek: service.priceSek,
     },
   });
   return NextResponse.json(booking);

@@ -24,6 +24,15 @@ const dict = {
     REQUESTED: "Requested", ACCEPTED: "Accepted", IN_PROGRESS: "In progress",
     COMPLETED: "Completed", CANCELLED: "Cancelled",
     PENDING: "Pending", APPROVED: "Approved", REJECTED: "Rejected",
+    // inside en: {
+    jobs: "Jobs", post_job: "Post a job", open_jobs: "Open jobs", my_jobs: "My jobs", budget: "Budget (SEK)",
+    bids: "Bids", place_bid: "Send bid", bid_msg: "Message", accept_bid: "Accept bid",
+    team: "Team", add_employee: "Add employee", phone: "Phone", hours: "Hours", live: "Live map",
+    details: "Details", assign: "Assign employee", assigned: "Assigned to", unassigned: "Not assigned",
+    live_track: "Live tracking", tracking_off: "Tracking starts when the employee is on the way.",
+    pay: "Pay now", paid: "Paid", rate: "Rate this service", rating: "Rating", send: "Send",
+    chat: "Chat", worked: "Time worked", reviews: "Reviews", on_my_way: "On my way",
+    EN_ROUTE: "On the way", OPEN: "Open", ASSIGNED: "Assigned", no_live: "No active jobs right now",
   },
   sv: {
     home_title: "Pålitliga hemtjänster i Sverige",
@@ -47,6 +56,15 @@ const dict = {
     REQUESTED: "Förfrågan", ACCEPTED: "Accepterad", IN_PROGRESS: "Pågår",
     COMPLETED: "Slutförd", CANCELLED: "Avbokad",
     PENDING: "Väntar", APPROVED: "Godkänd", REJECTED: "Avslagen",
+    // inside sv: {
+    jobs: "Uppdrag", post_job: "Publicera uppdrag", open_jobs: "Öppna uppdrag", my_jobs: "Mina uppdrag", budget: "Budget (SEK)",
+    bids: "Offerter", place_bid: "Skicka offert", bid_msg: "Meddelande", accept_bid: "Acceptera offert",
+    team: "Team", add_employee: "Lägg till anställd", phone: "Telefon", hours: "Timmar", live: "Livekarta",
+    details: "Detaljer", assign: "Tilldela anställd", assigned: "Tilldelad", unassigned: "Ej tilldelad",
+    live_track: "Live-spårning", tracking_off: "Spårning startar när den anställde är på väg.",
+    pay: "Betala nu", paid: "Betald", rate: "Betygsätt tjänsten", rating: "Betyg", send: "Skicka",
+    chat: "Chatt", worked: "Arbetad tid", reviews: "Omdömen", on_my_way: "Jag är på väg",
+    EN_ROUTE: "På väg", OPEN: "Öppen", ASSIGNED: "Tilldelad", no_live: "Inga aktiva uppdrag just nu",
   },
 };
 

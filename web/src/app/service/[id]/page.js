@@ -13,9 +13,10 @@ export default function ServicePage() {
   const [address, setAddress] = useState("");
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState("");
+  const [rev, setRev] = useState(null);
 
   useEffect(() => { api(`/services/${id}`).then(setService).catch((e) => setMsg(e.message)); }, [id]);
-
+  useEffect(() => { api(`/services/${id}/reviews`).then(setRev).catch(() => {}); }, [id]);
   async function book(e) {
     e.preventDefault();
     setMsg("");
@@ -41,6 +42,14 @@ export default function ServicePage() {
         <p className="text-gray-600">{service.provider.companyName} · {service.provider.city}</p>
         <p className="my-3">{service.description}</p>
         <p className="text-xl font-bold text-emerald-700">{service.priceSek} SEK · {service.durationMin} {t("min")}</p>
+        {rev && rev.count > 0 && (
+            <div className="mt-4 space-y-1">
+                <h3 className="font-semibold">{t("reviews")}: ⭐ {rev.avg.toFixed(1)} ({rev.count})</h3>
+                {rev.reviews.map((r) => (
+                  <p key={r.id} className="text-sm">⭐{r.rating} {r.customer.name}: {r.comment}</p>
+          ))}
+        </div>
+        )}
       </div>
       <form onSubmit={book} className="space-y-3 rounded-xl bg-white p-5 shadow">
         <label className="block text-sm">{t("date")}

@@ -21,8 +21,8 @@ export default function Navbar() {
     <nav className="flex flex-wrap items-center justify-between gap-3 bg-white px-6 py-3 shadow">
       <Link href="/" className="text-xl font-bold text-emerald-700">HemHjälp</Link>
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        {user?.role === "CUSTOMER" && <Link href="/bookings">{t("my_bookings")}</Link>}
-        {user?.role === "PROVIDER" && <Link href="/provider">{t("dashboard")}</Link>}
+        {user?.role === "CUSTOMER" && (<><Link href="/bookings">{t("my_bookings")}</Link><Link href="/jobs">{t("jobs")}</Link></>)}
+        {user?.role === "PROVIDER" && (<><Link href="/provider">{t("dashboard")}</Link><Link href="/provider/team">{t("team")}</Link><Link href="/jobs">{t("jobs")}</Link></>)}
         {user?.role === "ADMIN" && <Link href="/admin">{t("admin")}</Link>}
         {user ? (
           <button onClick={logout}>{t("logout")} ({user.name})</button>

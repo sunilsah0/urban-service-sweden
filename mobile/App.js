@@ -1,33 +1,26 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, FlatList, ScrollView, Image, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, ScrollView, Image, Linking, StyleSheet } from "react-native";
 import * as SecureStore from "expo-secure-store";
-
-const API = "http://192.168.1.50:3000/api"; // <-- put YOUR laptop IP here
+import { call } from "./api";
+import EmployeeApp from "./EmployeeApp";
+import TrackScreen from "./TrackScreen";
 
 const dict = {
-  en: { title: "HemHjälp", login: "Log in", logout: "Log out", email: "Email", password: "Password", book: "Book now", date: "Date (YYYY-MM-DD HH:MM)", address: "Address", mine: "My bookings", back: "Back", ok: "Booked!", min: "min" },
-  sv: { title: "HemHjälp", login: "Logga in", logout: "Logga ut", email: "E-post", password: "Lösenord", book: "Boka nu", date: "Datum (ÅÅÅÅ-MM-DD TT:MM)", address: "Adress", mine: "Mina bokningar", back: "Tillbaka", ok: "Bokat!", min: "min" },
+  en: { title: "HemHjälp", login: "Log in", logout: "Log out", email: "Email", password: "Password", book: "Book now", date: "Date (YYYY-MM-DD HH:MM)", address: "Address", mine: "My bookings", back: "Back", ok: "Booked!", min: "min", track: "Track worker", pay: "Pay now", paid: "Paid" },
+  sv: { title: "HemHjälp", login: "Logga in", logout: "Logga ut", email: "E-post", password: "Lösenord", book: "Boka nu", date: "Datum (ÅÅÅÅ-MM-DD TT:MM)", address: "Adress", mine: "Mina bokningar", back: "Tillbaka", ok: "Bokat!", min: "min", track: "Följ arbetaren", pay: "Betala nu", paid: "Betald" },
 };
-
-async function call(path, token, options = {}) {
-  const res = await fetch(API + path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error");
-  return data;
-}
 
 export default function App() {
   const [lang, setLang] = useState("en");
-  const t = (k) => dict[lang][k];
+  const t = (k) => dict[lang][k] || k;
   const [token, setToken] = useState(null);
-  const [screen, setScreen] = useState("home"); // home | list | detail | bookings | login
+  const [role, setRole] = useState(null);
+  const [screen, setScreen] = useState("home"); // home | list | detail | bookings | login | track
   const [cats, setCats] = useState([]);
   const [services, setServices] = useState([]);
   const [service, setService] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [trackId, setTrackId] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [date, setDate] = useState("");
@@ -35,7 +28,10 @@ export default function App() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    SecureStore.getItemAsync("token").then(setToken);
+    SecureStore.getItemAsync("token").then((tk) => {
+      if (!tk) return;
+      call("/auth/me", tk).then((d) => { if (d.user) { setToken(tk); setRole(d.user.role); } }).catch(() => {});
+    });
     call("/categories").then(setCats).catch((e) => setMsg(e.message));
   }, []);
 
@@ -47,12 +43,12 @@ export default function App() {
     try {
       const d = await call("/auth/login", null, { method: "POST", body: JSON.stringify({ email, password }) });
       await SecureStore.setItemAsync("token", d.token);
-      setToken(d.token); setMsg(""); setScreen("home");
+      setToken(d.token); setRole(d.user.role); setMsg(""); setScreen("home");
     } catch (e) { setMsg(e.message); }
   }
   async function logout() {
     await SecureStore.deleteItemAsync("token");
-    setToken(null); setScreen("home");
+    setToken(null); setRole(null); setScreen("home");
   }
   async function book() {
     try {
@@ -65,6 +61,14 @@ export default function App() {
     try { setBookings(await call("/bookings", token)); setScreen("bookings"); }
     catch (e) { setMsg(e.message); setScreen("login"); }
   }
+  async function pay(id) {
+    try {
+      const d = await call("/stripe/checkout", token, { method: "POST", body: JSON.stringify({ bookingId: id }) });
+      Linking.openURL(d.url);
+    } catch (e) { setMsg(e.message); }
+  }
+
+  if (role === "EMPLOYEE") return <EmployeeApp token={token} onLogout={logout} />;
 
   return (
     <View style={s.root}>
@@ -79,23 +83,17 @@ export default function App() {
       {!!msg && <Text style={s.msg}>{msg}</Text>}
 
       {screen === "home" && (
-        <FlatList
-          numColumns={2}
-          data={cats}
-          keyExtractor={(c) => c.id}
+        <FlatList numColumns={2} data={cats} keyExtractor={(c) => c.id}
           renderItem={({ item }) => (
             <Pressable style={s.cat} onPress={() => openCategory(item.slug)}>
               <Text style={{ fontSize: 32 }}>{item.icon}</Text>
               <Text style={{ fontWeight: "600" }}>{lang === "sv" ? item.nameSv : item.nameEn}</Text>
             </Pressable>
-          )}
-        />
+          )} />
       )}
 
       {screen === "list" && (
-        <FlatList
-          data={services}
-          keyExtractor={(x) => x.id}
+        <FlatList data={services} keyExtractor={(x) => x.id}
           ListHeaderComponent={<Text onPress={() => setScreen("home")}>← {t("back")}</Text>}
           renderItem={({ item }) => (
             <Pressable style={s.card} onPress={() => { setService(item); setMsg(""); setScreen("detail"); }}>
@@ -104,8 +102,7 @@ export default function App() {
               <Text>{item.provider.companyName} · {item.provider.city}</Text>
               <Text style={s.price}>{item.priceSek} SEK · {item.durationMin} {t("min")}</Text>
             </Pressable>
-          )}
-        />
+          )} />
       )}
 
       {screen === "detail" && service && (
@@ -124,18 +121,24 @@ export default function App() {
       )}
 
       {screen === "bookings" && (
-        <FlatList
-          data={bookings}
-          keyExtractor={(b) => b.id}
+        <FlatList data={bookings} keyExtractor={(b) => b.id}
           renderItem={({ item }) => (
             <View style={s.card}>
-              <Text style={s.bold}>{item.service.title}</Text>
+              <Text style={s.bold}>{item.title || item.service?.title}</Text>
               <Text>{new Date(item.date).toLocaleString()} · {item.address}</Text>
               <Text style={s.price}>{item.status}</Text>
+              {["EN_ROUTE", "IN_PROGRESS"].includes(item.status) && (
+                <Text style={s.link} onPress={() => { setTrackId(item.id); setScreen("track"); }}>📍 {t("track")}</Text>
+              )}
+              {!item.paid && ["ACCEPTED", "EN_ROUTE", "IN_PROGRESS", "COMPLETED"].includes(item.status) && (
+                <Text style={s.link} onPress={() => pay(item.id)}>💳 {t("pay")}</Text>
+              )}
+              {item.paid && <Text style={s.price}>✔ {t("paid")}</Text>}
             </View>
-          )}
-        />
+          )} />
       )}
+
+      {screen === "track" && <TrackScreen token={token} bookingId={trackId} onBack={openBookings} />}
 
       {screen === "login" && (
         <View>
@@ -158,6 +161,7 @@ const s = StyleSheet.create({
   img: { height: 150, borderRadius: 8, marginBottom: 8 },
   bold: { fontWeight: "700", fontSize: 16 },
   price: { color: "#047857", fontWeight: "700", marginTop: 4 },
+  link: { color: "#2563eb", fontWeight: "700", marginTop: 6 },
   input: { borderWidth: 1, borderColor: "#d1d5db", borderRadius: 8, padding: 10, marginVertical: 6, backgroundColor: "white" },
   btn: { backgroundColor: "#059669", padding: 12, borderRadius: 8, alignItems: "center", marginTop: 8 },
   btnText: { color: "white", fontWeight: "700" },

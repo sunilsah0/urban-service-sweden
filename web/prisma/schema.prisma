@@ -8,9 +8,10 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role { CUSTOMER PROVIDER ADMIN }
+enum Role { CUSTOMER PROVIDER EMPLOYEE ADMIN }
 enum ProviderStatus { PENDING APPROVED REJECTED }
-enum BookingStatus { REQUESTED ACCEPTED IN_PROGRESS COMPLETED CANCELLED }
+enum BookingStatus { REQUESTED ACCEPTED EN_ROUTE IN_PROGRESS COMPLETED CANCELLED }
+enum JobStatus { OPEN ASSIGNED }
 
 model User {
   id           String   @id @default(cuid())
@@ -20,7 +21,11 @@ model User {
   role         Role     @default(CUSTOMER)
   createdAt    DateTime @default(now())
   provider     Provider?
+  employee     Employee?
   bookings     Booking[]
+  jobPosts     JobPost[]
+  reviews      Review[]
+  messages     Message[]
 }
 
 model Provider {
@@ -34,6 +39,20 @@ model Provider {
   createdAt   DateTime       @default(now())
   services    Service[]
   bookings    Booking[]
+  employees   Employee[]
+  bids        Bid[]
+}
+
+model Employee {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  user       User     @relation(fields: [userId], references: [id])
+  providerId String
+  provider   Provider @relation(fields: [providerId], references: [id])
+  phone      String   @default("")
+  active     Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  bookings   Booking[]
 }
 
 model Category {
@@ -43,6 +62,7 @@ model Category {
   nameSv   String
   icon     String
   services Service[]
+  jobPosts JobPost[]
 }
 
 model Service {
@@ -62,16 +82,105 @@ model Service {
 }
 
 model Booking {
-  id         String        @id @default(cuid())
-  customerId String
-  customer   User          @relation(fields: [customerId], references: [id])
-  serviceId  String
-  service    Service       @relation(fields: [serviceId], references: [id])
+  id             String        @id @default(cuid())
+  customerId     String
+  customer       User          @relation(fields: [customerId], references: [id])
+  serviceId      String?
+  service        Service?      @relation(fields: [serviceId], references: [id])
+  providerId     String
+  provider       Provider      @relation(fields: [providerId], references: [id])
+  employeeId     String?
+  employee       Employee?     @relation(fields: [employeeId], references: [id])
+  jobPostId      String?       @unique
+  jobPost        JobPost?      @relation(fields: [jobPostId], references: [id])
+  title          String?
+  priceSek       Int?
+  date           DateTime
+  address        String
+  note           String        @default("")
+  status         BookingStatus @default(REQUESTED)
+  paid           Boolean       @default(false)
+  paidAt         DateTime?
+  platformFeeSek Int?
+  createdAt      DateTime      @default(now())
+  timeLogs       TimeLog[]
+  locations      LocationPoint[]
+  messages       Message[]
+  review         Review?
+}
+
+model TimeLog {
+  id         String    @id @default(cuid())
+  bookingId  String
+  booking    Booking   @relation(fields: [bookingId], references: [id])
+  employeeId String?
+  startedAt  DateTime
+  endedAt    DateTime?
+}
+
+model LocationPoint {
+  id         String   @id @default(cuid())
+  bookingId  String
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  employeeId String?
+  lat        Float
+  lng        Float
+  createdAt  DateTime @default(now())
+
+  @@index([bookingId, createdAt])
+}
+
+model JobPost {
+  id          String    @id @default(cuid())
+  customerId  String
+  customer    User      @relation(fields: [customerId], references: [id])
+  categoryId  String
+  category    Category  @relation(fields: [categoryId], references: [id])
+  title       String
+  description String
+  address     String
+  budgetSek   Int?
+  date        DateTime
+  status      JobStatus @default(OPEN)
+  createdAt   DateTime  @default(now())
+  bids        Bid[]
+  booking     Booking?
+}
+
+model Bid {
+  id         String   @id @default(cuid())
+  jobPostId  String
+  jobPost    JobPost  @relation(fields: [jobPostId], references: [id])
   providerId String
-  provider   Provider      @relation(fields: [providerId], references: [id])
-  date       DateTime
-  address    String
-  note       String        @default("")
-  status     BookingStatus @default(REQUESTED)
-  createdAt  DateTime      @default(now())
+  provider   Provider @relation(fields: [providerId], references: [id])
+  priceSek   Int
+  message    String   @default("")
+  createdAt  DateTime @default(now())
+
+  @@unique([jobPostId, providerId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  customerId String
+  customer   User     @relation(fields: [customerId], references: [id])
+  providerId String
+  serviceId  String?
+  rating     Int
+  comment    String   @default("")
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  bookingId String
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([bookingId, createdAt])
 }
