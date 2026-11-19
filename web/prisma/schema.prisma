@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role { CUSTOMER PROVIDER ADMIN }
+enum ProviderStatus { PENDING APPROVED REJECTED }
+enum BookingStatus { REQUESTED ACCEPTED IN_PROGRESS COMPLETED CANCELLED }
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(CUSTOMER)
+  createdAt    DateTime @default(now())
+  provider     Provider?
+  bookings     Booking[]
+}
+
+model Provider {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  user        User           @relation(fields: [userId], references: [id])
+  companyName String
+  description String         @default("")
+  city        String         @default("")
+  status      ProviderStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  services    Service[]
+  bookings    Booking[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  slug     String    @unique
+  nameEn   String
+  nameSv   String
+  icon     String
+  services Service[]
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  providerId  String
+  provider    Provider @relation(fields: [providerId], references: [id])
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  title       String
+  description String
+  priceSek    Int
+  durationMin Int
+  imageUrl    String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  bookings    Booking[]
+}
+
+model Booking {
+  id         String        @id @default(cuid())
+  customerId String
+  customer   User          @relation(fields: [customerId], references: [id])
+  serviceId  String
+  service    Service       @relation(fields: [serviceId], references: [id])
+  providerId String
+  provider   Provider      @relation(fields: [providerId], references: [id])
+  date       DateTime
+  address    String
+  note       String        @default("")
+  status     BookingStatus @default(REQUESTED)
+  createdAt  DateTime      @default(now())
+}
