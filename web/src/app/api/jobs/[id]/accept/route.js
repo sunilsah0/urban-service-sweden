@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUser, fail } from "@/lib/auth";
+import { notify } from "@/lib/notify";
 
 export async function POST(req, { params }) {
   const { id } = await params;
@@ -28,5 +29,14 @@ export async function POST(req, { params }) {
     }),
     prisma.jobPost.update({ where: { id }, data: { status: "ASSIGNED" } }),
   ]);
+  const prov = await prisma.provider.findUnique({ where: { id: bid.providerId } });
+    if (prov)
+        after(() =>
+         notify(prov.userId, {
+         title: "Your bid was accepted / Din offert accepterades",
+            body: job.title,
+            path: `/booking/${booking.id}`,
+    })
+  );
   return NextResponse.json(booking);
 }

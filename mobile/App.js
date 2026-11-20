@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { View, Text, TextInput, Pressable, FlatList, ScrollView, Image, Linking, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, FlatList, ScrollView, Image, Linking, StyleSheet, Switch, Alert} from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { call } from "./api";
 import EmployeeApp from "./EmployeeApp";
 import TrackScreen from "./TrackScreen";
+import { registerPush } from "./push";
+import ProviderApp from "./ProviderApp";
 
 const dict = {
   en: { title: "HemHjälp", login: "Log in", logout: "Log out", email: "Email", password: "Password", book: "Book now", date: "Date (YYYY-MM-DD HH:MM)", address: "Address", mine: "My bookings", back: "Back", ok: "Booked!", min: "min", track: "Track worker", pay: "Pay now", paid: "Paid" },
@@ -26,6 +28,8 @@ export default function App() {
   const [date, setDate] = useState("");
   const [address, setAddress] = useState("");
   const [msg, setMsg] = useState("");
+  const [useRut, setUseRut] = useState(false);
+  
 
   useEffect(() => {
     SecureStore.getItemAsync("token").then((tk) => {
@@ -43,7 +47,7 @@ export default function App() {
     try {
       const d = await call("/auth/login", null, { method: "POST", body: JSON.stringify({ email, password }) });
       await SecureStore.setItemAsync("token", d.token);
-      setToken(d.token); setRole(d.user.role); setMsg(""); setScreen("home");
+      setToken(d.token); setRole(d.user.role); registerPush(d.token); setMsg(""); setScreen("home");
     } catch (e) { setMsg(e.message); }
   }
   async function logout() {
@@ -53,7 +57,7 @@ export default function App() {
   async function book() {
     try {
       const iso = new Date(date.replace(" ", "T")).toISOString();
-      await call("/bookings", token, { method: "POST", body: JSON.stringify({ serviceId: service.id, date: iso, address }) });
+      await call("/bookings", token, { method: "POST", body: JSON.stringify({  serviceId: service.id, date: iso, address, useRut  }) });
       setMsg(t("ok"));
     } catch (e) { setMsg(e.message); }
   }
@@ -67,7 +71,16 @@ export default function App() {
       Linking.openURL(d.url);
     } catch (e) { setMsg(e.message); }
   }
-
+function deleteAccount() {
+  Alert.alert("Delete account?", "This cannot be undone.", [
+    { text: "Cancel", style: "cancel" },
+    { text: "Delete", style: "destructive", onPress: async () => {
+        try { await call("/account", token, { method: "DELETE" }); await logout(); }
+        catch (e) { setMsg(e.message); }
+    } },
+  ]);
+}
+if (role === "PROVIDER") return <ProviderApp token={token} onLogout={logout} onDelete={deleteAccount} />;
   if (role === "EMPLOYEE") return <EmployeeApp token={token} onLogout={logout} />;
 
   return (
@@ -117,6 +130,13 @@ export default function App() {
           <Pressable style={s.btn} onPress={token ? book : () => setScreen("login")}>
             <Text style={s.btnText}>{t("book")}</Text>
           </Pressable>
+          {service.category?.taxType === "RUT" && service.provider?.fSkattVerified && (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+    <Switch value={useRut} onValueChange={setUseRut} />
+    {/* 50 = RUT_PERCENT on the server. Keep them in sync. */}
+    <Text style={{ flex: 1 }}>RUT-avdrag: {service.priceSek - Math.round(service.priceSek / 2)} SEK</Text>
+  </View>
+)}
         </ScrollView>
       )}
 
@@ -136,8 +156,9 @@ export default function App() {
               {item.paid && <Text style={s.price}>✔ {t("paid")}</Text>}
             </View>
           )} />
+          
       )}
-
+      {token && screen === "home" && <Text onPress={deleteAccount} style={{ color: "#b91c1c", marginVertical: 12 }}>Delete account</Text>}
       {screen === "track" && <TrackScreen token={token} bookingId={trackId} onBack={openBookings} />}
 
       {screen === "login" && (

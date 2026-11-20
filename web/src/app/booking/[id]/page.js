@@ -71,6 +71,12 @@ export default function BookingPage() {
           </div>
           <p className="text-sm text-gray-600">{new Date(b.date).toLocaleString()} · {b.address}</p>
           <p className="font-semibold">{price} SEK {b.paid && <span className="text-emerald-700">· ✔ {t("paid")}</span>}</p>
+            {b.useRut && (
+                <p className="text-sm">
+                    {t("rut_deduction")}: −{b.rutDeductionSek} SEK · {t("you_pay")}: {b.payAmountSek} SEK
+                    {b.who === "provider" && <span className="font-semibold"> · {t("claim_skv")}: {b.rutDeductionSek} SEK</span>}
+            </p>
+        )}
           <p className="text-sm">{t("assigned")}: {b.employee?.user.name || t("unassigned")}</p>
           <p className="text-sm">{t("worked")}: {Math.floor(b.minutesWorked / 60)} h {b.minutesWorked % 60} min</p>
           <div className="flex flex-wrap gap-2 pt-2">

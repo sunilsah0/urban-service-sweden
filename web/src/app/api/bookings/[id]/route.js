@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
+import { notify } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { getUser, fail } from "@/lib/auth";
 import { getBookingAccess } from "@/lib/access";
@@ -53,5 +54,13 @@ export async function PATCH(req, { params }) {
     ops.push(prisma.locationPoint.deleteMany({ where: { bookingId: id } })); // GDPR: delete GPS after the job
   }
   const [updated] = await prisma.$transaction(ops);
+  const target = who === "customer" ? booking.provider.userId : booking.customerId;
+  after(() =>
+    notify(target, {
+        title: "Booking update / Bokning uppdaterad",
+         body: `${booking.title || "Booking / Bokning"}: ${status}`,
+        path: `/booking/${id}`,
+    })
+    );
   return NextResponse.json(updated);
 }

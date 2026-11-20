@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { api, btn, input } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
+import { CITIES } from "@/lib/cities";
 
 export default function Register() {
   const { t } = useLang();
-  const [f, setF] = useState({ name: "", email: "", password: "", role: "CUSTOMER", companyName: "", city: "" });
+  const [f, setF] = useState({ name: "", email: "", password: "", role: "CUSTOMER", companyName: "", city: "",orgNumber: "" });
   const [error, setError] = useState("");
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
 
@@ -30,7 +31,9 @@ export default function Register() {
       {f.role === "PROVIDER" && (
         <>
           <input required placeholder={t("company")} className={input} value={f.companyName} onChange={set("companyName")} />
-          <input required placeholder={t("city")} className={input} value={f.city} onChange={set("city")} />
+          <input required list="cities" placeholder={t("city")} className={input} value={f.city} onChange={set("city")} />
+          <datalist id="cities">{CITIES.map((c) => <option key={c.slug} value={c.name} />)}</datalist>
+          <input required placeholder={t("org_number")} className={input} value={f.orgNumber} onChange={set("orgNumber")} />
         </>
       )}
       <button className={btn}>{t("register")}</button>

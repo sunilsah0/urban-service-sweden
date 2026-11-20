@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUser, fail } from "@/lib/auth";
 import { getBookingAccess } from "@/lib/access";
+import { notify } from "@/lib/notify";
 
 export async function PATCH(req, { params }) {
   const { id } = await params;
@@ -14,5 +15,13 @@ export async function PATCH(req, { params }) {
     where: { id: employeeId, providerId: access.booking.providerId, active: true },
   });
   if (!emp) return fail("Employee not found", 404);
-  return NextResponse.json(await prisma.booking.update({ where: { id }, data: { employeeId } }));
+  const updated = await prisma.booking.update({ where: { id }, data: { employeeId } });
+    after(() =>
+        notify(emp.userId, {
+         title: "New job / Nytt jobb",
+         body: access.booking.title || "A job was assigned to you / Ett jobb har tilldelats dig",
+         path: "/",
+    })
+    );
+return NextResponse.json(updated);
 }

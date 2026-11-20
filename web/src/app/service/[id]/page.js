@@ -3,6 +3,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, btn, input } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
+import { priceBreakdown } from "@/lib/pricing";
 
 export default function ServicePage() {
   const { id } = useParams();
@@ -14,6 +15,9 @@ export default function ServicePage() {
   const [note, setNote] = useState("");
   const [msg, setMsg] = useState("");
   const [rev, setRev] = useState(null);
+  const [useRut, setUseRut] = useState(false);
+  const rutOk = service?.category?.taxType === "RUT" && service?.provider?.fSkattVerified;
+  const pb = service ? priceBreakdown(service.priceSek, rutOk && useRut) : null;
 
   useEffect(() => { api(`/services/${id}`).then(setService).catch((e) => setMsg(e.message)); }, [id]);
   useEffect(() => { api(`/services/${id}/reviews`).then(setRev).catch(() => {}); }, [id]);
@@ -23,7 +27,7 @@ export default function ServicePage() {
     try {
       await api("/bookings", {
         method: "POST",
-        body: JSON.stringify({ serviceId: id, date: new Date(date).toISOString(), address, note }),
+        body: JSON.stringify({ serviceId: id, date: new Date(date).toISOString(), address, note, useRut }),
       });
       setMsg(t("booked_ok"));
       setTimeout(() => router.push("/bookings"), 800);
@@ -62,6 +66,17 @@ export default function ServicePage() {
           <textarea className={input} value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
         <button className={btn}>{t("book")}</button>
+        {rutOk && (
+            <label className="flex items-start gap-2 text-sm">
+                <input type="checkbox" checked={useRut} onChange={(e) => setUseRut(e.target.checked)} />
+                <span>{t("use_rut")}<br /><span className="text-gray-500">{t("rut_note")}</span></span>
+            </label>
+    )}
+{rutOk && useRut && (
+  <p className="font-semibold text-emerald-700">
+    {t("you_pay")}: {pb.payAmountSek} SEK <span className="font-normal text-gray-500 line-through">{service.priceSek}</span>
+  </p>
+)}
         {msg && <p className="text-sm text-emerald-700">{msg}</p>}
       </form>
     </div>

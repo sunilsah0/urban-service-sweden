@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { hashPassword, sessionResponse, fail } from "@/lib/auth";
 
 export async function POST(req) {
-  const { name, email, password, role, companyName, city } = await req.json();
+  const { name, email, password, role, companyName, city, orgNumber } = await req.json();
   if (!name || !email || !password || password.length < 8)
     return fail("Fill all fields (password min 8 characters)");
   const lower = email.toLowerCase().trim();
@@ -18,7 +18,7 @@ export async function POST(req) {
       passwordHash: await hashPassword(password),
       role: isProvider ? "PROVIDER" : "CUSTOMER",
       provider: isProvider
-        ? { create: { companyName: companyName || name, city: city || "" } }
+        ? { create: { companyName: companyName || name, city: city || "", orgNumber: String(orgNumber || "").replace(/[^0-9-]/g, "").slice(0, 13) } }
         : undefined,
     },
   });

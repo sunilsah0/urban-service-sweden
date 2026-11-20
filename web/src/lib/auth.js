@@ -1,6 +1,7 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { NextResponse } from "next/server";
+import { prisma } from "./prisma";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
@@ -25,6 +26,8 @@ export async function getUser(req) {
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secret);
+    const row = await prisma.user.findUnique({ where: { id: payload.sub }, select: { deletedAt: true } });
+    if (!row || row.deletedAt) return null;
     return { id: payload.sub, role: payload.role };
   } catch {
     return null;

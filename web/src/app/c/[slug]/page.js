@@ -1,29 +1,24 @@
-"use client";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { useLang } from "@/lib/i18n";
+import { notFound } from "next/navigation";
+import ServiceGrid from "@/components/ServiceGrid";
+import { loadCategoryPage } from "@/lib/catalog";
 
-export default function CategoryPage() {
-  const { slug } = useParams();
-  const { t } = useLang();
-  const [services, setServices] = useState([]);
-  useEffect(() => { api(`/services?category=${slug}`).then(setServices).catch(() => {}); }, [slug]);
+export const revalidate = 300;
 
-  if (!services.length) return <p className="text-gray-500">{t("empty")}</p>;
-  return (
-    <div className="grid gap-4 md:grid-cols-3">
-      {services.map((s) => (
-        <Link key={s.id} href={`/service/${s.id}`} className="overflow-hidden rounded-xl bg-white shadow hover:shadow-md">
-          {s.imageUrl && <img src={s.imageUrl} alt={s.title} className="h-40 w-full object-cover" />}
-          <div className="p-4">
-            <div className="font-semibold">{s.title}</div>
-            <div className="text-sm text-gray-600">{s.provider.companyName} · {s.provider.city}</div>
-            <div className="mt-2 font-bold text-emerald-700">{s.priceSek} SEK · {s.durationMin} {t("min")}</div>
-          </div>
-        </Link>
-      ))}
-    </div>
-  );
+export async function generateMetadata({ params }) {
+  const { slug } = await params;
+  const data = await loadCategoryPage(slug);
+  if (!data) return {};
+  const n = data.category.nameSv;
+  return {
+    title: `${n} – boka online | HemHjälp`,
+    description: `Boka ${n.toLowerCase()} online. Verifierade företag, tydliga priser och RUT-avdrag.`,
+    alternates: { canonical: `/c/${slug}` },
+  };
+}
+
+export default async function Page({ params }) {
+  const { slug } = await params;
+  const data = await loadCategoryPage(slug);
+  if (!data) notFound();
+  return <ServiceGrid category={data.category} services={data.services} />;
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { api, uploadImage, btn, input } from "@/lib/api";
 import { useLang } from "@/lib/i18n";
 import BookingList from "@/components/BookingList";
+import ProviderSettings from "@/components/ProviderSettings";
 
 const empty = { title: "", description: "", priceSek: "", durationMin: "", categoryId: "" };
 
@@ -44,13 +45,18 @@ export default function ProviderDashboard() {
 
   if (error && !provider) return <p className="text-red-600">{error}</p>;
   if (!provider) return <p>...</p>;
-  if (provider.status === "PENDING") return <p className="rounded bg-yellow-100 p-4">{t("pending_msg")}</p>;
-  if (provider.status === "REJECTED") return <p className="rounded bg-red-100 p-4">{t("rejected_msg")}</p>;
-
+ if (provider.status === "PENDING")
+  return (
+    <div className="space-y-4">
+      <p className="rounded bg-yellow-100 p-4">{t("pending_msg")}</p>
+      <ProviderSettings provider={provider} onSaved={load} />
+    </div>
+  );
+ if (provider.status === "REJECTED") return <p className="rounded bg-red-100 p-4">{t("rejected_msg")}</p>;
   return (
     <div className="space-y-8">
       <h1 className="text-2xl font-bold">{provider.companyName}</h1>
-
+      <ProviderSettings provider={provider} onSaved={load} />
       <section>
         <h2 className="mb-3 text-xl font-semibold">{t("bookings")}</h2>
         <BookingList bookings={bookings} role="PROVIDER" onAction={act} />

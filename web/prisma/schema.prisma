@@ -8,10 +8,29 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-enum Role { CUSTOMER PROVIDER EMPLOYEE ADMIN }
-enum ProviderStatus { PENDING APPROVED REJECTED }
-enum BookingStatus { REQUESTED ACCEPTED EN_ROUTE IN_PROGRESS COMPLETED CANCELLED }
-enum JobStatus { OPEN ASSIGNED }
+enum Role { 
+    CUSTOMER 
+    PROVIDER 
+    EMPLOYEE 
+    ADMIN 
+}
+enum ProviderStatus { 
+    PENDING 
+    APPROVED 
+    REJECTED 
+}
+enum BookingStatus { 
+    REQUESTED 
+    ACCEPTED 
+    EN_ROUTE 
+    IN_PROGRESS 
+    COMPLETED 
+    CANCELLED 
+}
+enum JobStatus { 
+    OPEN 
+    ASSIGNED 
+}
 
 model User {
   id           String   @id @default(cuid())
@@ -26,6 +45,9 @@ model User {
   jobPosts     JobPost[]
   reviews      Review[]
   messages     Message[]
+  
+  pushToken String?
+  deletedAt DateTime?
 }
 
 model Provider {
@@ -41,6 +63,11 @@ model Provider {
   bookings    Booking[]
   employees   Employee[]
   bids        Bid[]
+  
+  orgNumber       String  @default("")
+  fSkattVerified  Boolean @default(false)
+  stripeAccountId String?
+  payoutsEnabled  Boolean @default(false)
 }
 
 model Employee {
@@ -53,6 +80,8 @@ model Employee {
   active     Boolean  @default(true)
   createdAt  DateTime @default(now())
   bookings   Booking[]
+ 
+  taxType String @default("NONE")   
 }
 
 model Category {
@@ -63,6 +92,10 @@ model Category {
   icon     String
   services Service[]
   jobPosts JobPost[]
+  
+  useRut          Boolean @default(false)
+  rutDeductionSek Int?
+  payAmountSek    Int?
 }
 
 model Service {

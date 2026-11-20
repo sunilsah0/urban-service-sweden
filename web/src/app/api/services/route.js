@@ -10,7 +10,7 @@ export async function GET(req) {
       provider: { status: "APPROVED" },
       ...(slug ? { category: { slug } } : {}),
     },
-    include: { provider: { select: { companyName: true, city: true } }, category: true },
+    include: { provider: { select: { companyName: true, city: true, fSkattVerified: true } }, category: true },
     orderBy: { createdAt: "desc" },
   });
   return NextResponse.json(services);
